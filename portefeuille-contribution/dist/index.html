@@ -89,10 +89,14 @@
       const renderLineGauge = () => {
         const gauge = document.querySelector('.line-pie');
         if (!gauge) return;
+        const palette = {TV: '#1664e8', Commerce: '#ee9a37', Internet: '#d74a78'};
         const parts = [...document.querySelectorAll('.line-key-row')].map(row => {
           const label = row.querySelector('span');
           const value = Number(row.querySelector('strong').textContent.replace(/[^0-9,-]/g, '').replace(',', '.')) || 0;
-          return {label, name: label.dataset.name ||= label.textContent.trim(), value, color: row.querySelector('i').style.background};
+          const name = label.dataset.name ||= label.textContent.trim();
+          const color = palette[name] || row.querySelector('i').style.background;
+          row.querySelector('i').style.background = color;
+          return {label, name, value, color};
         });
         const total = parts.reduce((sum, part) => sum + part.value, 0);
         let point = 0;
