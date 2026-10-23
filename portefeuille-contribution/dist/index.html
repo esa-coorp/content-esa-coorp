@@ -42,6 +42,10 @@
     .rank-check{width:12px;height:12px;flex:0 0 12px;border:1.5px solid #aab7c4;border-radius:3px;background:#fff}
     .rank.active .rank-check{border-color:var(--blue);background:var(--blue);box-shadow:inset 0 0 0 2px #fff}
   </style>
+  <style>
+    .accounts th[data-sort-key]{cursor:pointer;user-select:none}
+    .accounts th[data-sort-key]:hover{color:var(--blue);background:#f3f7ff}
+  </style>
 </head>
 <body>
   <div id="loading-overlay" role="status" aria-live="polite" aria-label="Chargement de la carte">
@@ -104,6 +108,31 @@
       const impacts=[['Impact transport','impactTransport'],['Impact poids','impactWeight'],['Impact lignes facture','impactInvoiceLines'],['Impact lignes commande','impactOrderLines']],data=impacts.map(([label,key])=>({label,value:sum(rows,key)})),max=Math.max(...data.map(x=>x.value),1),ratio=s.revenue?s.contribution/s.revenue:0,perDelivery=s.deliveries?s.contribution/s.deliveries:0,weightPerDelivery=s.deliveries?s.weight/s.deliveries:0,lineParts=[['TV',sum(rows,'tvLines'),'#1664e8'],['Commerce',sum(rows,'commerceLines'),'#ee9a37'],['Internet',sum(rows,'internetLines'),'#d74a78']],lineTotal=sum(rows,'lines')||lineParts.reduce((total,[,value])=>total+value,0),lineStops=lineParts.reduce((state,[,value,color])=>{const next=state.position+(lineTotal?value/lineTotal*100:0);state.stops.push(`${color} ${state.position}% ${next}%`);state.position=next;return state},{position:0,stops:[]}).stops.join(', ');
       document.querySelector('#rankLabel').textContent=people.length===1?`${rsds.indexOf(people[0])+1}e sur ${rsds.length}`:`${people.length} RSD sélectionnés`;
       document.querySelector('#focus').innerHTML=`<div><p class="eyebrow">${people.length===1?(s.contribution<0?'Priorité d’analyse':'Contribution positive'):'Vue consolidée'}</p><div class="focus-name">${s.name}</div><p class="focus-caption">${people.length===1?(s.contribution<0?'La contribution agrégée est négative. Explorer les comptes ci-dessous puis le facteur opérationnel dominant.':'La contribution agrégée est positive ; consulter les comptes pour préserver les facteurs favorables.'):'Les indicateurs et les comptes ci-dessous regroupent les responsables sélectionnés.'}</p></div><div class="metrics"><div class="metric"><label>Contrib. manuelle</label><b class="${s.contribution<0?'danger':'positive'}">${money(s.contribution)}</b></div><div class="metric"><label>CA net recalculé</label><b>${money(s.revenue)}</b></div><div class="metric"><label>Marge NN</label><b>${money(s.margin)}</b></div><div class="metric"><label>Nb. comptes</label><b>${number(rows.length)}</b></div><div class="metric"><label>Contrib. / compte</label><b class="${s.contribution<0?'danger':'positive'}">${money(rows.length?s.contribution/rows.length:0)}</b></div><div class="metric"><label>Contrib. / livraison</label><b class="${perDelivery<0?'danger':'positive'}">${money(perDelivery)}</b></div><div class="metric"><label>Contrib. / CA net</label><b class="${ratio<0?'danger':'positive'}">${(ratio*100).toLocaleString('fr-FR',{maximumFractionDigits:1})}&nbsp;%</b></div><div class="metric"><label>Livraisons</label><b>${number(s.deliveries)}</b></div><div class="metric"><label>Poids brut livré</label><b>${weight(s.weight)}</b></div><div class="metric"><label>Poids moyen / livraison</label><b>${weight(weightPerDelivery)}</b></div></div><div class="line-mix"><h3>Répartition des lignes</h3><div class="line-mix-content"><div class="line-pie" role="img" aria-label="Répartition des lignes" style="background:conic-gradient(${lineStops||'#e4e9ee 0 100%'})"><div class="line-pie-value"><b>${number(lineTotal)}</b><span>lignes</span></div></div><div class="line-key">${lineParts.map(([label,value,color])=>`<div class="line-key-row"><i style="background:${color}"></i><span>${label}</span><strong>${number(value)}</strong></div>`).join('')}</div></div></div><div class="drivers"><h3>Facteurs de coût à traiter (€)</h3>${data.map(d=>`<div class="driver"><span>${d.label}</span><div class="bar"><i style="width:${Math.max(2,d.value/max*100)}%"></i></div><strong>${money(d.value)}</strong></div>`).join('')}<p class="focus-caption" style="margin:13px 0 0"><strong>Avant toute décision RH :</strong> confronter ces indicateurs à l’ancienneté, aux objectifs, à l’historique du portefeuille, aux conditions de territoire et aux actions d’accompagnement déjà mises en place.</p></div>`;
+    }
+    const accountColumns=['client','clientCode','rsd','target','postcode','revenue','margin','contributionV2','deliveries','weight','lines','tvLines','commerceLines','internetLines','impactTransport','impactWeight','impactInvoiceLines','impactOrderLines','contribution'];
+    const textAccountColumns=new Set(['client','clientCode','rsd','target','postcode']);
+    let accountSort={key:'contribution',direction:1};
+    function configureAccountHeaders(){
+      document.querySelectorAll('.accounts thead th').forEach((th,index)=>{
+        const key=accountColumns[index]; if(!key)return;
+        th.dataset.label ||= th.textContent.trim(); th.dataset.sortKey=key; th.tabIndex=0;
+        const active=accountSort.key===key, arrow=active?(accountSort.direction===1?' ↑':' ↓'):'';
+        th.textContent=th.dataset.label+arrow; th.setAttribute('aria-sort',active?(accountSort.direction===1?'ascending':'descending'):'none');
+        const applySort=()=>{accountSort=accountSort.key===key?{key,direction:-accountSort.direction}:{key,direction:1};renderAccounts(current())};
+        th.onclick=applySort; th.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();applySort()}};
+      });
+    }
+    function renderAccounts(rows){
+      configureAccountHeaders();
+      const display=[...rows].sort((a,b)=>{
+        const av=a[accountSort.key],bv=b[accountSort.key];
+        const comparison=textAccountColumns.has(accountSort.key)?String(av??'').localeCompare(String(bv??''),'fr',{numeric:true,sensitivity:'base'}):(Number(av)||0)-(Number(bv)||0);
+        return comparison*accountSort.direction;
+      });
+      document.querySelector('#accountsTitle').textContent='Comptes — '+selectionLabel();
+      const activeHeader=document.querySelector(`.accounts thead th[data-sort-key="${accountSort.key}"]`);
+      document.querySelector('#accountsSub').textContent=`${display.length} résultat${display.length>1?'s':''}, ordre ${accountSort.direction===1?'croissant':'décroissant'} par ${activeHeader?.dataset.label.toLowerCase()||'contribution'}`;
+      document.querySelector('#accounts').innerHTML=display.length?display.map(x=>`<tr><td><strong>${x.client}</strong></td><td>${x.clientCode}</td><td>${x.rsd}</td><td><span class="badge">${x.target}</span></td><td>${x.postcode}</td><td class="num">${money(x.revenue)}</td><td class="num">${money(x.margin)}</td><td class="num ${x.contributionV2<0?'danger':'positive'}">${money(x.contributionV2)}</td><td class="num">${number(x.deliveries)}</td><td class="num">${weight(x.weight)}</td><td class="num">${number(x.lines)}</td><td class="num">${number(x.tvLines)}</td><td class="num">${number(x.commerceLines)}</td><td class="num">${number(x.internetLines)}</td><td class="num">${money(x.impactTransport)}</td><td class="num">${money(x.impactWeight)}</td><td class="num">${money(x.impactInvoiceLines)}</td><td class="num">${money(x.impactOrderLines)}</td><td class="num ${x.contribution<0?'danger':'positive'}"><strong>${money(x.contribution)}</strong></td></tr>`).join(''):`<tr><td colspan="19" class="empty">Aucun compte ne correspond à la recherche.</td></tr>`;
     }
     function render(){
       renderRanking(); renderFocus(); const rows=current(); renderMap(rows);
