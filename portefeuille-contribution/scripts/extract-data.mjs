@@ -9,6 +9,7 @@ const headerName = value => String(value || '').normalize('NFD').replace(/[\u030
 const code = value => { const result = String(value ?? '').trim().replace(/\.0+$/, '').replace(/\s+/g, ''); return /^(\(vide\)|n\/a|-)?$/i.test(result) ? '' : result; };
 const postcode = value => { const digits = String(value ?? '').replace(/\.0+$/, '').replace(/\D/g, ''); return digits ? digits.padStart(5, '0').slice(-5) : ''; };
 const amount = value => { const parsed = Number(String(value ?? '').replace(',', '.')); return Number.isFinite(parsed) ? parsed : 0; };
+const month = value => { const numeric = amount(value); if (numeric >= 1 && numeric <= 12) return numeric; const names = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre']; const index = names.indexOf(normaliseHeader(value)); return index < 0 ? 0 : index + 1; };
 const string = value => String(value ?? '').trim();
 
 const shared = [...extract('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(match => decode([...match[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(part => part[1]).join('')));
@@ -42,6 +43,8 @@ for (const row of base.filter(item => item.number > baseHeader.row.number)) {
   const clientCode = code(row[baseColumn('Code Client Magellan')]); if (!clientCode) continue;
   const assignment = {
     rsd: string(row[baseColumn('RS TGFL')]),
+    periodYear: amount(row[baseColumn('Année')]),
+    periodMonth: month(row[baseColumn('Mois')]),
     tourNumber: string(row[baseColumn('Num tournée')]),
     tourName: string(row[baseColumn('Nom tournée')]),
     caNetRecalculated: amount(row[baseColumn('Ca Net Recalculé')]),
@@ -59,11 +62,12 @@ for (const row of clients.filter(item => item.number > clientHeader.row.number))
   const item = {clientCode, client, classActivity: string(row[clientColumn('Nom Classe Activite')]) || 'Non renseignée', postcode: postcode(row[clientColumn('Code Postal Livraison')]), oneTeam: string(row[clientColumn('ONE TEAM ?')]), revenue: amount(row[clientColumn('CA Net')]), margin: amount(row[clientColumn('Marge net')]), marginRate: amount(row[clientColumn('TAUX MARGE')]), marginPerKg: amount(row[clientColumn('Marge€/KG')]), pricePerKg: amount(row[clientColumn('€/KG')]), vml: amount(row[clientColumn('VML')]), pml: amount(row[clientColumn('PML')]), contribution: amount(row[clientColumn('Contribution (V2)')]), contributionV2: amount(row[clientColumn('Contribution (V2)')]), contributionRate: amount(row[clientColumn('Tx contrib')]), deliveries: amount(row[clientColumn('Fréquence liv')])};
   const matches = [...(baseByClient.get(clientCode)?.values() || [])];
   const assignments = [...new Map(matches.map(match => [JSON.stringify({rsd: match.rsd, tourNumber: match.tourNumber, tourName: match.tourName}), match])).values()];
-  if (!matches.length) { Object.assign(item, {rsd: 'Non affecté', tourNumber: '', tourName: '', caNetRecalculated: null, marginNnRecalculated: null, invoicedWeight: null, clientsPerDelivery: null, contributionAmountV2: null}); anomalies.unmatchedClientCodes.push(clientCode); }
-  else if (assignments.length > 1) { Object.assign(item, {rsd: 'Affectation multiple', tourNumber: 'Multiple', tourName: 'Affectation à valider', assignments, caNetRecalculated: null, marginNnRecalculated: null, invoicedWeight: null, clientsPerDelivery: null, contributionAmountV2: null}); anomalies.ambiguousAssignments.push({clientCode, assignments}); }
+  if (!matches.length) { Object.assign(item, {rsd: 'Non affecté', tourNumber: '', tourName: '', periodYears: [], periodMonths: [], caNetRecalculated: null, marginNnRecalculated: null, invoicedWeight: null, clientsPerDelivery: null, contributionAmountV2: null}); anomalies.unmatchedClientCodes.push(clientCode); }
+  else if (assignments.length > 1) { Object.assign(item, {rsd: 'Affectation multiple', tourNumber: 'Multiple', tourName: 'Affectation à valider', assignments, periodYears: [...new Set(matches.map(match => match.periodYear).filter(Boolean))], periodMonths: [...new Set(matches.map(match => match.periodMonth).filter(Boolean))], caNetRecalculated: null, marginNnRecalculated: null, invoicedWeight: null, clientsPerDelivery: null, contributionAmountV2: null}); anomalies.ambiguousAssignments.push({clientCode, assignments}); }
   else {
     const metrics = ['caNetRecalculated', 'marginNnRecalculated', 'invoicedWeight', 'clientsPerDelivery', 'contributionAmountV2'];
     Object.assign(item, assignments[0]);
+    item.periodYears = [...new Set(matches.map(match => match.periodYear).filter(Boolean))]; item.periodMonths = [...new Set(matches.map(match => match.periodMonth).filter(Boolean))];
     metrics.forEach(key => { item[key] = matches.reduce((total, match) => total + match[key], 0); });
     if (matches.length > 1) anomalies.aggregatedBaseRows.push({clientCode, rows: matches.length});
   }
