@@ -9,7 +9,7 @@ const assignment = `window.PORTFOLIO_DATA = ${data};`;
 const marker = '/* DATA_EMBEDDED */';
 const output = html.includes(marker)
   ? html.replace(marker, assignment)
-  : html.replace(/window\.PORTFOLIO_DATA = \[[\s\S]*?\];(?=\n\s*const accounts)/, assignment);
+  : html.replace(/window\.PORTFOLIO_DATA = \[[\s\S]*?\];/, assignment);
 
 if (output === html) throw new Error('Data insertion point not found.');
 writeFileSync(templatePath, output);
