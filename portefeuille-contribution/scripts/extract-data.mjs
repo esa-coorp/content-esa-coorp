@@ -9,7 +9,13 @@ const headerName = value => String(value || '').normalize('NFD').replace(/[\u030
 const code = value => { const result = String(value ?? '').trim().replace(/\.0+$/, '').replace(/\s+/g, ''); return /^(\(vide\)|n\/a|-)?$/i.test(result) ? '' : result; };
 const postcode = value => { const digits = String(value ?? '').replace(/\.0+$/, '').replace(/\D/g, ''); return digits ? digits.padStart(5, '0').slice(-5) : ''; };
 const amount = value => { const parsed = Number(String(value ?? '').replace(',', '.')); return Number.isFinite(parsed) ? parsed : 0; };
-const month = value => { const numeric = amount(value); if (numeric >= 1 && numeric <= 12) return numeric; const names = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre']; const index = names.indexOf(normaliseHeader(value)); return index < 0 ? 0 : index + 1; };
+const month = value => {
+  const numeric = amount(value); if (numeric >= 1 && numeric <= 12) return numeric;
+  const normalized = headerName(value), names = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+  const named = names.indexOf(normalized); if (named >= 0) return named + 1;
+  const match = normalized.match(/(?:^| )m?0?([1-9]|1[0-2])(?: |$)/);
+  return match ? Number(match[1]) : 0;
+};
 const string = value => String(value ?? '').trim();
 
 const shared = [...extract('xl/sharedStrings.xml').matchAll(/<si>([\s\S]*?)<\/si>/g)].map(match => decode([...match[1].matchAll(/<t[^>]*>([\s\S]*?)<\/t>/g)].map(part => part[1]).join('')));
