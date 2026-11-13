@@ -192,11 +192,11 @@
   });
   </script>
   <script>
-    const request = new URLSearchParams(window.location.search), sharedHash = request.get('hash') || '', sharedDataUrl = /^[a-f0-9]{64}$/i.test(sharedHash) ? `https://raw.githubusercontent.com/esa-coorp/content-esa-coorp/master/portefeuille-contribution/shared/${sharedHash}.json` : null;
+    const request = new URLSearchParams(window.location.search), sharedHash = request.get('hash') || '', isPreview = request.get('preview') === '1', sharedDataUrl = /^[a-f0-9]{64}$/i.test(sharedHash) ? `https://raw.githubusercontent.com/esa-coorp/content-esa-coorp/master/portefeuille-contribution/shared/${sharedHash}.json` : null;
     let settlePortfolioData; window.portfolioDataReady = new Promise(resolve => { settlePortfolioData = resolve; });
     window.addEventListener('load', async () => {
       try {
-        let imported = null;
+        let imported = isPreview ? JSON.parse(sessionStorage.getItem('portefeuille-contribution.preview') || 'null') : null;
         if (sharedDataUrl) {
           const trustedPrefix = 'https://raw.githubusercontent.com/esa-coorp/content-esa-coorp/master/portefeuille-contribution/shared/';
           if (!sharedDataUrl.startsWith(trustedPrefix)) throw new Error('Lien de consultation non reconnu.');
@@ -284,7 +284,7 @@
         if (!dropzone || !input) return;
         const start = file => importWorkbook(file, error).catch(() => {}); input.onchange = event => start(event.target.files[0]); ['dragenter', 'dragover'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.add('is-dragover'); })); ['dragleave', 'drop'].forEach(type => dropzone.addEventListener(type, event => { event.preventDefault(); dropzone.classList.remove('is-dragover'); })); dropzone.addEventListener('drop', event => start(event.dataTransfer.files[0])); return;
       }
-      if (!sharedDataUrl) window.history.replaceState({}, '', window.location.pathname);
+      if (!sharedDataUrl && !isPreview) window.history.replaceState({}, '', window.location.pathname);
       const money = value => new Intl.NumberFormat('fr-FR', {style: 'currency', currency: 'EUR', maximumFractionDigits: 0}).format(value || 0);
       const number = value => new Intl.NumberFormat('fr-FR', {maximumFractionDigits: 2}).format(value || 0);
       const percent = value => `${((value || 0) * 100).toLocaleString('fr-FR', {maximumFractionDigits: 1})} %`;
