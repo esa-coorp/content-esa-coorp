@@ -196,7 +196,9 @@
     let settlePortfolioData; window.portfolioDataReady = new Promise(resolve => { settlePortfolioData = resolve; });
     window.addEventListener('load', async () => {
       try {
-        let imported = isPreview ? JSON.parse(sessionStorage.getItem('portefeuille-contribution.preview') || 'null') : null;
+        const previewData = isPreview ? localStorage.getItem('portefeuille-contribution.preview') : null;
+        if (isPreview) localStorage.removeItem('portefeuille-contribution.preview');
+        let imported = isPreview ? JSON.parse(previewData || 'null') : null;
         if (sharedDataUrl) {
           const trustedPrefix = 'https://raw.githubusercontent.com/esa-coorp/content-esa-coorp/master/portefeuille-contribution/shared/';
           if (!sharedDataUrl.startsWith(trustedPrefix)) throw new Error('Lien de consultation non reconnu.');
