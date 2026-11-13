@@ -204,7 +204,7 @@
           if (!response.ok) throw new Error('Version partagée introuvable.');
           const payload = await response.json(); imported = Array.isArray(payload) ? payload : payload.accounts;
         }
-        if (Array.isArray(imported) && imported.length) { window.PORTFOLIO_DATA = imported; document.body.classList.remove('awaiting-import'); document.body.classList.add('public-dashboard'); }
+        if (Array.isArray(imported) && imported.length) { window.PORTFOLIO_DATA = imported; document.body.classList.remove('awaiting-import'); document.body.classList.add('public-dashboard'); window.setTimeout(() => document.querySelector('#loading-overlay').classList.add('is-hidden'), 0); }
         else document.querySelector('#loading-overlay').classList.add('is-hidden');
       } catch { document.body.classList.add('awaiting-import'); document.querySelector('#loading-overlay').classList.add('is-hidden'); }
       finally { settlePortfolioData(); }
