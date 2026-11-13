@@ -247,7 +247,8 @@
     });
   </script>
   <script>
-    window.addEventListener('load', () => {
+    window.addEventListener('load', async () => {
+      await window.portfolioDataReady;
       const accounts = window.PORTFOLIO_DATA;
       const normaliseHeader = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
       const normaliseCode = value => { const result = String(value ?? '').trim().replace(/\.0+$/, '').replace(/\s+/g, ''); return /^(\(vide\)|n\/a|-)?$/i.test(result) ? '' : result; };
