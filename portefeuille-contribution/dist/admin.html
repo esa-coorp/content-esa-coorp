@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script defer src="assets/i18n.js"></script>
   <title>Administration — Portefeuille contribution</title>
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script defer src="assets/france-postcodes.js"></script>
@@ -16,7 +17,7 @@
     window.addEventListener('load', () => {
       const fileInput = document.querySelector('#fileInput'), dropzone = document.querySelector('#dropzone'), fileLabel = document.querySelector('#fileLabel'), preview = document.querySelector('#preview'), publish = document.querySelector('#publish'), status = document.querySelector('#status'), token = document.querySelector('#githubToken'), tokenField = document.querySelector('#tokenField'), result = document.querySelector('#result'), shareUrl = document.querySelector('#shareUrl'), notification = document.querySelector('#copyNotification'); let selectedFile, notificationTimer;
       const notify = message => { notification.textContent = message; notification.classList.add('is-visible'); clearTimeout(notificationTimer); notificationTimer = window.setTimeout(() => notification.classList.remove('is-visible'), 2600); };
-      const copyShareLink = async () => { let copied = false; try { await navigator.clipboard.writeText(shareUrl.value); copied = true; } catch { shareUrl.select(); copied = document.execCommand('copy'); } notify(copied ? 'Lien copié dans le presse-papiers.' : 'Copie impossible : utilisez le lien affiché.'); };
+      const copyShareLink = async () => { let copied = false; try { await navigator.clipboard.writeText(shareUrl.value); copied = true; } catch { shareUrl.select(); copied = document.execCommand('copy'); } notify(copied ? window.t?.('share.copied', 'Lien copié dans le presse-papiers.') : window.t?.('share.error', 'Copie impossible : utilisez le lien affiché.')); };
       const cookie = name => document.cookie.split('; ').find(item => item.startsWith(`${name}=`))?.slice(name.length + 1) || '';
       const saveCookie = value => { document.cookie = `portefeuille-publication-key=${encodeURIComponent(value)}; Max-Age=${value ? 2592000 : 0}; Path=/; SameSite=Strict; Secure`; };
       token.value = decodeURIComponent(cookie('portefeuille-publication-key'));
